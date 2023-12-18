@@ -13,7 +13,7 @@ FetchContent_MakeAvailable(JUCE)
 
 # libFLAC
 set(WITH_OGG OFF CACHE BOOL "with_ogg" FORCE)
-set(INSTALL_MANPAGES OFF)
+set(INSTALL_MANPAGES OFF CACHE BOOL "install_manpages" FORCE)
 FetchContent_Declare(
   libFLAC
   GIT_REPOSITORY https://github.com/xiph/flac.git
@@ -47,10 +47,12 @@ FetchContent_MakeAvailable(mdns)
 
 # JUCE基本設定
 juce_add_plugin(JuceFlacStreamingDemo
-    PLUGIN_MANUFACTURER_CODE sota
-    PLUGIN_CODE Jfsd
+    PLUGIN_MANUFACTURER_CODE Sota
+    PLUGIN_CODE jfsd
     FORMATS AU VST3 Standalone
-    PRODUCT_NAME "JuceFlacStreamingDemo")
+    PRODUCT_NAME "JuceFlacStreamingDemo"
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "This applicaion requires a permission to use an audio input device.")
 
 juce_generate_juce_header(JuceFlacStreamingDemo)
 
@@ -103,7 +105,6 @@ set(Artefact_DIR ${PROJECT_BINARY_DIR}/JuceFlacStreamingDemo_artefacts/${CMAKE_B
 add_custom_command(
     TARGET JuceFlacStreamingDemo
     POST_BUILD
-    COMMAND cmd /c "pnpm run build"
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/Standalone/static
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/VST3/static
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../client/

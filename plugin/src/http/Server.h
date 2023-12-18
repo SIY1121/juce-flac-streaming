@@ -10,10 +10,14 @@
 #include "AppComponent.h"
 #include "StaticFileController.h"
 #include "WSEndpointController.h"
+#include <atomic>
 
-class Server : public juce::Thread, public AudioSender {
+class Server : public juce::Thread, public AudioSender
+{
     std::unique_ptr<AsyncFlacEncoder> _encoder;
     std::unique_ptr<oatpp::network::Server> _server;
+    std::atomic<bool> _isServerRunning = false;
+
 public:
     Server();
     ~Server();

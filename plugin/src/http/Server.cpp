@@ -1,18 +1,19 @@
 #include "Server.h"
 
-Server::Server() : juce::Thread("Server") {
+Server::Server() : juce::Thread("Server")
+{
 
     startThread();
 }
 
-Server::~Server() {
-    _server->stop();
-    _encoder.reset();
-    _server.reset();
+Server::~Server()
+{
+    _isServerRunning = false;
     stopThread(1000);
 }
 
-void Server::run() {
+void Server::run()
+{
     oatpp::base::Environment::init();
 
     /* Register Components in scope of run() method */
@@ -36,28 +37,35 @@ void Server::run() {
 
     /* Priny info about server port */
     OATPP_LOGI("MyApp", "Server running on port %s", connectionProvider->getProperty("port").getData());
-
+    _isServerRunning = true;
     /* Run server */
     _server->run();
+    OATPP_LOGI("MyApp", "Server closed");
     oatpp::base::Environment::destroy();
 }
 
-void Server::setAudioFormat(int numChannel, int bitPerSample, int sampleRate, int blockSize) {
-    if(!_encoder) return;
+void Server::setAudioFormat(int numChannel, int bitPerSample, int sampleRate, int blockSize)
+{
     OATPP_COMPONENT(std::shared_ptr<WSInstanceListener>, wsInstanceListener);
 
-    auto header_callback = [&](const std::vector<std::vector<FLAC__byte>> headers) {
-        wsInstanceListener->onFlacHeader(headers);
+    auto header_callback = [&](const std::vector<std::vector<FLAC__byte>> headers)
+    {
+        if (_isServerRunning)
+            wsInstanceListener->onFlacHeader(headers);
     };
-    auto frame_callback = [&](const FLAC__byte buffer[], size_t bytes, uint32_t samples, uint32_t current_frame) {
-        wsInstanceListener->onFlacFrame(buffer, bytes, samples, current_frame);
+    auto frame_callback = [&](const FLAC__byte buffer[], size_t bytes, uint32_t samples, uint32_t current_frame)
+    {
+        if (_isServerRunning)
+            wsInstanceListener->onFlacFrame(buffer, bytes, samples, current_frame);
     };
 
     // オーディオフォーマットの変更に応じてEncoderを再生成する
     _encoder = std::make_unique<AsyncFlacEncoder>(numChannel, bitPerSample, sampleRate, blockSize, header_callback, frame_callback);
 }
 
-void Server::send(juce::AudioBuffer<float> buffer) {
-    if(!_encoder) return;
+void Server::send(juce::AudioBuffer<float> buffer)
+{
+    if (!_encoder || !_isServerRunning)
+        return;
     _encoder->process(buffer);
 }
