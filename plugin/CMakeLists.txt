@@ -101,12 +101,28 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 set(Artefact_DIR ${PROJECT_BINARY_DIR}/JuceFlacStreamingDemo_artefacts/${CMAKE_BUILD_TYPE})
 
-# build frontend
+if(WIN32)
+# copy client files
+add_custom_command(
+    TARGET JuceFlacStreamingDemo
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/Standalone/static
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/VST3/JuceFlacStreamingDemo.vst3/Contents/x86_64-win/static
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../client/
+    COMMENT "Copy client files to artefact directory"
+)
+
+else()
+# copy client files
 add_custom_command(
     TARGET JuceFlacStreamingDemo
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/Standalone/static
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/VST3/static
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/../client/dist ${Artefact_DIR}/AU/static
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/../client/
-    COMMENT "Build Frontend"
+    COMMENT "Copy client files to artefact directory"
 )
+
+endif()
+

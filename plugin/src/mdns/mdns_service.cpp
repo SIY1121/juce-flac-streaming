@@ -85,8 +85,7 @@ std::vector<std::string> MDNSService::listAddress()
         auto addr = sock->getAddr();
 #if _WIN32
         std::ostringstream stream;
-        addr.sin_addr.s_addr
-                stream
+        stream
             << (int)addr.sin_addr.S_un.S_un_b.s_b1 << "."
             << (int)addr.sin_addr.S_un.S_un_b.s_b2 << "."
             << (int)addr.sin_addr.S_un.S_un_b.s_b3 << "."

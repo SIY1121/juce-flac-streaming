@@ -12,6 +12,8 @@ export class Player {
     audioContext: AudioContext | null = null
     socket: WebSocket | null = null
 
+    isLibFlacReady = false;
+
     isFlacMagicReceived = false
 
     isFirstTimePlay = true
@@ -20,8 +22,13 @@ export class Player {
     
     bufferOffset = 0
 
+    onInfo?: (volume: number[]) => void;
+
     constructor(onReady: (player: Player) => void) {
-        Flac.on("ready", (_: Flac.ReadyEvent) => onReady(this))
+        Flac.on("ready", (_: Flac.ReadyEvent) => {
+            this.isLibFlacReady = true
+            onReady(this)
+        })
     }
 
     initDecoder() {
@@ -38,7 +45,6 @@ export class Player {
     }
 
     unlockAudio() {
-        console.log(this.audioContext)
         this.audioContext?.resume()
     }
 
@@ -55,6 +61,13 @@ export class Player {
         this.socket.addEventListener("message", this.onWebSocketMessage.bind(this))
     }
 
+    stop() {
+        this.socket?.close()
+        if(this.isLibFlacReady && this.decoder > 0)
+            Flac.FLAC__stream_decoder_finish(this.decoder)
+        this.audioContext?.close()
+    }
+
     async onWebSocketMessage(e: MessageEvent) {
         this.receivedData.push(await e.data.arrayBuffer())
         if(this.isFlacMagicReceived) {
@@ -65,7 +78,7 @@ export class Player {
         this.isFlacMagicReceived = true
     }
 
-    onFlacReadCallback: Flac.decoder_read_callback_fn = (numberOfBytes: number) => {
+    private onFlacReadCallback: Flac.decoder_read_callback_fn = (numberOfBytes: number) => {
         if(!this.currentData) {
             this.currentData = this.receivedData.splice(0, 1)[0]
         }
@@ -83,7 +96,7 @@ export class Player {
         }
     }
 
-    onFlacWriteCallback: Flac.decoder_write_callback_fn = (channelsBuffer: Uint8Array[], frameInfo: Flac.BlockMetadata) => {
+    private onFlacWriteCallback: Flac.decoder_write_callback_fn = (channelsBuffer: Uint8Array[], frameInfo: Flac.BlockMetadata) => {
         if(!this.audioContext) return
         if(this.isFirstTimePlay) {
             this.isFirstTimePlay = false
@@ -93,14 +106,20 @@ export class Player {
 
         const source = this.audioContext.createBufferSource()
         const buffer = this.audioContext.createBuffer(frameInfo.channels, frameInfo.blocksize, frameInfo.sampleRate)
+        const peakVolumes: number[] = []
         for (let i = 0; i < frameInfo.channels; i++) {
+            let peakVolume = 0
             const view = new DataView(channelsBuffer[i].buffer)
             const len = channelsBuffer[i].length / 2
             const buf32 = new Float32Array(len)
             for(let i = 0; i < len; i++) {
                 buf32[i] = view.getInt16(i * 2, true) / 0x7fff
+                if(peakVolume < Math.abs(buf32[i]))
+                    peakVolume = Math.abs(buf32[i])
             }
             buffer.copyToChannel(buf32, i)
+            // in dB
+            peakVolumes.push(Math.log10(peakVolume) * 10)
         }
         source.buffer = buffer
         source.connect(this.audioContext.destination)
@@ -114,14 +133,18 @@ export class Player {
         }
 
         source.start(scheduleTime)
+
+        setTimeout(() => {
+            if(this.onInfo) this.onInfo(peakVolumes)
+        }, (scheduleTime - this.audioContext.currentTime) * 1000)
     }
 
-    onFlacMetadataCallback: Flac.metadata_callback_fn = (metadata?: Flac.StreamMetadata) => {
+    private onFlacMetadataCallback: Flac.metadata_callback_fn = (metadata?: Flac.StreamMetadata) => {
         const sampleRate = metadata?.sampleRate ?? 44100
         this.initAudioContext(sampleRate)
     }
 
-    onFlacErrorCallback: Flac.decoder_error_callback_fn = (errorCode: number, errorDescription: Flac.FLAC__StreamDecoderErrorStatus) => {
+    private onFlacErrorCallback: Flac.decoder_error_callback_fn = (errorCode: number, errorDescription: Flac.FLAC__StreamDecoderErrorStatus) => {
         console.error('decode error callback', errorCode, errorDescription);
     }
 }
