@@ -2,6 +2,7 @@
 
 char namebuffer[256];
 
+// MDNSのクエリを受信したときに呼ばれるコールバック
 int record_callback(int sock, const struct sockaddr *from, size_t addrlen,
                     mdns_entry_type_t entry, uint16_t query_id, uint16_t rtype,
                     uint16_t rclass, uint32_t ttl, const void *data, size_t size,
@@ -15,9 +16,9 @@ int record_callback(int sock, const struct sockaddr *from, size_t addrlen,
     auto domain = self->domain;
 
     mdns_string_t name = mdns_string_extract(data, size, &name_offset, namebuffer, sizeof(namebuffer));
-    std::cout << std::string(name.str, name.length) << std::endl;
 
     static char sendbuffer[1024];
+    // Aレコードクエリでドメイン名が一致するときに自身のIPアドレスを返す
     if (rtype == MDNS_RECORDTYPE_A && strncmp(name.str, domain, strlen(domain)) == 0)
     {
         mdns_record_t answer;

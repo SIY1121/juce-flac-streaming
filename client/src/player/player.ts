@@ -57,7 +57,6 @@ export class Player {
 
     start() {
         this.socket = new WebSocket(`ws://${window.location.host}/ws`)
-        // this.socket = new WebSocket(`ws://localhost:8000/ws`)
         this.socket.addEventListener("message", this.onWebSocketMessage.bind(this))
     }
 

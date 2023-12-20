@@ -128,7 +128,6 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 {
     juce::ignoreUnused (midiMessages);
 
-
     _audioSender->send(buffer);
 }
 
