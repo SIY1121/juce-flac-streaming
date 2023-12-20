@@ -11,12 +11,13 @@ export const barContainer = style({
     position: 'relative',
     height: "100%",
     flex: 1,
-    overflow: "hidden"
+    overflow: "hidden",
+    background: "gray"
 })
 
 export const container = style({
     display: "flex",
-    gap: 4,
+    gap: 16,
     width: 200,
     height: 400
 })
